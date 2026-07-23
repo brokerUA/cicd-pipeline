@@ -44,7 +44,7 @@ pipeline {
             agent {
                 docker {
                     image 'docker:29'
-                    args '-v /var/run/docker.sock:/var/run/docker.sock'
+                    args '-v /var/run/docker.sock:/var/run/docker.sock --user 0:0'
                 }
             }
             environment {
