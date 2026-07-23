@@ -1,5 +1,11 @@
-FROM node:7.8.0
+FROM node:20-alpine
+
 WORKDIR /opt
-ADD . /opt
+
+COPY package*.json ./
+
 RUN npm install
-ENTRYPOINT npm run start
+
+COPY . .
+
+ENTRYPOINT ["npm", "run", "start"]
