@@ -40,17 +40,47 @@ pipeline {
             }
         }
 
-        stage('Deploy (Lowest Downtime)') {
+//         stage('Deploy (Lowest Downtime)') {
+//             steps {
+//                 echo 'Deploying application...'
+//                 script {
+//                     def dockerHome = tool name: 'docker-in-jenkins', type: 'org.jenkinsci.plugins.docker.commons.tools.DockerTool'
+//
+//                     withEnv(["PATH+DOCKER=${dockerHome}"]) {
+//                         sh "docker rm -f ${CONTAINER_NAME} || true"
+//                         sh "docker run -d --name ${CONTAINER_NAME} --expose 3000 -p ${PORT_MAPPING} ${IMAGE_NAME}"
+//                     }
+//                 }
+//             }
+//         }
+
+        stage('Push to Docker Hub') {
             steps {
-                echo 'Deploying application...'
+                echo 'Pushing image to Docker Hub...'
                 script {
                     def dockerHome = tool name: 'docker-in-jenkins', type: 'org.jenkinsci.plugins.docker.commons.tools.DockerTool'
 
+                    def dockerUser = "brokerUA"
+                    def remoteImage = "${dockerUser}/${IMAGE_NAME}"
+
                     withEnv(["PATH+DOCKER=${dockerHome}"]) {
-                        sh "docker stop ${CONTAINER_NAME} || true"
-                        sh "docker rm ${CONTAINER_NAME} || true"
-                        sh "docker run -d --name ${CONTAINER_NAME} --expose 3000 -p ${PORT_MAPPING} ${IMAGE_NAME}"
+                        withCredentials([usernamePassword(credentialsId: 'docker-hub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                            sh "echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin"
+                            sh "docker tag ${IMAGE_NAME} ${remoteImage}"
+                            sh "docker push ${remoteImage}"
+                        }
                     }
+                }
+            }
+        }
+
+        stage('Trigger Deployment') {
+            steps {
+                script {
+                    def targetPipeline = (env.BRANCH_NAME == 'main') ? 'Deploy_to_main' : 'Deploy_to_dev'
+                    echo "Triggering downstream pipeline: ${targetPipeline}"
+
+                    build job: targetPipeline, wait: false
                 }
             }
         }
