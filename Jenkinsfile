@@ -60,7 +60,7 @@ pipeline {
                 script {
                     def dockerHome = tool name: 'docker-in-jenkins', type: 'org.jenkinsci.plugins.docker.commons.tools.DockerTool'
 
-                    def dockerUser = "brokerUA"
+                    def dockerUser = "brokerua"
                     def remoteImage = "docker.io/${dockerUser}/${IMAGE_NAME}"
 
                     withEnv(["PATH+DOCKER=${dockerHome}"]) {
