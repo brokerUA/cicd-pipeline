@@ -61,7 +61,7 @@ pipeline {
                     def dockerHome = tool name: 'docker-in-jenkins', type: 'org.jenkinsci.plugins.docker.commons.tools.DockerTool'
 
                     def dockerUser = "brokerUA"
-                    def remoteImage = "${dockerUser}/${IMAGE_NAME}"
+                    def remoteImage = "docker.io/${dockerUser}/${IMAGE_NAME}"
 
                     withEnv(["PATH+DOCKER=${dockerHome}"]) {
                         withCredentials([usernamePassword(credentialsId: 'docker-hub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
