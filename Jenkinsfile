@@ -16,7 +16,7 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 echo 'Installing dependencies...'
-                sh "npm ci --no-cache"
+                sh "npm install --no-audit --no-fund --prefer-offline"
             }
         }
 
