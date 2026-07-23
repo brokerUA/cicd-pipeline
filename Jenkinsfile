@@ -59,8 +59,8 @@ pipeline {
         stage('Scan Docker Image') {
             agent {
                 docker {
-                    image 'aquasec/trivy:latest-alpine'
-                    args '-v /var/run/docker.sock:/var/run/docker.sock -v $HOME/.cache:/root/.cache --user 0:0'
+                    image 'aquasec/trivy:latest'
+                    args '-v /var/run/docker.sock:/var/run/docker.sock -v $HOME/.cache:/root/.cache --user 0:0 --entrypoint=""'
                 }
             }
             steps {
