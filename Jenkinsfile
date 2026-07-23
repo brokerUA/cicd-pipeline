@@ -40,26 +40,15 @@ pipeline {
             }
         }
 
-//         FOR DEMO
-//         stage('Build Docker Image') {
-//             steps {
-//                 echo "Building Docker image for branch ${env.BRANCH_NAME}..."
-//                 script {
-//                     def dockerHome = tool name: 'docker-in-jenkins', type: 'org.jenkinsci.plugins.docker.commons.tools.DockerTool'
-//
-//                     withEnv(["PATH+DOCKER=${dockerHome}"]) {
-//                         sh "docker build -t ${IMAGE_NAME} ."
-//                     }
-//                 }
-//             }
-//         }
-
         stage('Build Docker Image') {
             agent {
                 docker {
                     image 'docker:29'
                     args '-v /var/run/docker.sock:/var/run/docker.sock'
                 }
+            }
+            environment {
+                HOME = '.'
             }
             steps {
                 echo "Building Docker image for branch ${env.BRANCH_NAME} inside Docker agent..."
@@ -80,21 +69,6 @@ pipeline {
                 }
             }
         }
-
-//         FOR DEMO
-//         stage('Deploy (Lowest Downtime)') {
-//             steps {
-//                 echo 'Deploying application...'
-//                 script {
-//                     def dockerHome = tool name: 'docker-in-jenkins', type: 'org.jenkinsci.plugins.docker.commons.tools.DockerTool'
-//
-//                     withEnv(["PATH+DOCKER=${dockerHome}"]) {
-//                         sh "docker rm -f ${CONTAINER_NAME} || true"
-//                         sh "docker run -d --name ${CONTAINER_NAME} --expose 3000 -p ${PORT_MAPPING} ${IMAGE_NAME}"
-//                     }
-//                 }
-//             }
-//         }
 
         stage('Push to Docker Hub') {
             steps {
