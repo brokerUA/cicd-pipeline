@@ -57,15 +57,16 @@ pipeline {
         }
 
         stage('Scan Docker Image') {
+            agent {
+                docker {
+                    image 'aquasec/trivy:latest'
+                    args '-v /var/run/docker.sock:/var/run/docker.sock -v $HOME/.cache:/root/.cache'
+                }
+            }
             steps {
-                echo "Scanning Docker image ${IMAGE_NAME} for vulnerabilities using Trivy..."
+                echo "Scanning Docker image ${IMAGE_NAME} for vulnerabilities using Trivy inside Docker agent..."
                 script {
-                    def vulnerabilities = sh(
-                        script: "trivy image --exit-code 0 --severity HIGH,MEDIUM,LOW --no-progress ${IMAGE_NAME}",
-                        returnStdout: true
-                    ).trim()
-
-                    echo "Vulnerability Report:\n${vulnerabilities}"
+                    sh "trivy image --exit-code 0 --severity HIGH,MEDIUM,LOW --no-progress ${IMAGE_NAME}"
                 }
             }
         }
