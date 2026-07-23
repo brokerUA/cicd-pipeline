@@ -16,7 +16,7 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 echo 'Installing dependencies...'
-                sh 'npm install'
+                sh "npm install --no-audit --no-fund --prefer-offline"
             }
         }
 
@@ -27,32 +27,49 @@ pipeline {
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Lint Dockerfile') {
             steps {
-                echo "Building Docker image for branch ${env.BRANCH_NAME}..."
+                echo 'Linting Dockerfile with Hadolint...'
                 script {
                     def dockerHome = tool name: 'docker-in-jenkins', type: 'org.jenkinsci.plugins.docker.commons.tools.DockerTool'
 
                     withEnv(["PATH+DOCKER=${dockerHome}"]) {
-                        sh "docker build -t ${IMAGE_NAME} ."
+                        sh "docker run --rm -i hadolint/hadolint < Dockerfile || true"
                     }
                 }
             }
         }
 
-//         stage('Deploy (Lowest Downtime)') {
-//             steps {
-//                 echo 'Deploying application...'
-//                 script {
-//                     def dockerHome = tool name: 'docker-in-jenkins', type: 'org.jenkinsci.plugins.docker.commons.tools.DockerTool'
-//
-//                     withEnv(["PATH+DOCKER=${dockerHome}"]) {
-//                         sh "docker rm -f ${CONTAINER_NAME} || true"
-//                         sh "docker run -d --name ${CONTAINER_NAME} --expose 3000 -p ${PORT_MAPPING} ${IMAGE_NAME}"
-//                     }
-//                 }
-//             }
-//         }
+        stage('Build Docker Image') {
+            agent {
+                docker {
+                    image 'docker:29'
+                    args '-v /var/run/docker.sock:/var/run/docker.sock --user 0:0'
+                }
+            }
+            environment {
+                HOME = '.'
+            }
+            steps {
+                echo "Building Docker image for branch ${env.BRANCH_NAME} inside Docker agent..."
+                sh "docker build -t ${IMAGE_NAME} ."
+            }
+        }
+
+        stage('Scan Docker Image') {
+            agent {
+                docker {
+                    image 'aquasec/trivy:latest'
+                    args '-v /var/run/docker.sock:/var/run/docker.sock --user 0:0 --entrypoint=""'
+                }
+            }
+            steps {
+                echo "Scanning Docker image ${IMAGE_NAME} for vulnerabilities using Trivy inside Docker agent..."
+                script {
+                    sh "trivy image --exit-code 0 --severity HIGH,MEDIUM,LOW --no-progress ${IMAGE_NAME}"
+                }
+            }
+        }
 
         stage('Push to Docker Hub') {
             steps {
