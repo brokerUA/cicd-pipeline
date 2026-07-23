@@ -27,19 +27,61 @@ pipeline {
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Lint Dockerfile') {
             steps {
-                echo "Building Docker image for branch ${env.BRANCH_NAME}..."
+                echo 'Linting Dockerfile with Hadolint...'
                 script {
                     def dockerHome = tool name: 'docker-in-jenkins', type: 'org.jenkinsci.plugins.docker.commons.tools.DockerTool'
 
                     withEnv(["PATH+DOCKER=${dockerHome}"]) {
-                        sh "docker build -t ${IMAGE_NAME} ."
+                        sh "docker run --rm -i hadolint/hadolint < Dockerfile || true"
                     }
                 }
             }
         }
 
+//         FOR DEMO
+//         stage('Build Docker Image') {
+//             steps {
+//                 echo "Building Docker image for branch ${env.BRANCH_NAME}..."
+//                 script {
+//                     def dockerHome = tool name: 'docker-in-jenkins', type: 'org.jenkinsci.plugins.docker.commons.tools.DockerTool'
+//
+//                     withEnv(["PATH+DOCKER=${dockerHome}"]) {
+//                         sh "docker build -t ${IMAGE_NAME} ."
+//                     }
+//                 }
+//             }
+//         }
+
+        stage('Build Docker Image') {
+            agent {
+                docker {
+                    image 'docker:29'
+                    args '-v /var/run/docker.sock:/var/run/docker.sock'
+                }
+            }
+            steps {
+                echo "Building Docker image for branch ${env.BRANCH_NAME} inside Docker agent..."
+                sh "docker build -t ${IMAGE_NAME} ."
+            }
+        }
+
+        stage('Scan Docker Image') {
+            steps {
+                echo "Scanning Docker image ${IMAGE_NAME} for vulnerabilities using Trivy..."
+                script {
+                    def vulnerabilities = sh(
+                        script: "trivy image --exit-code 0 --severity HIGH,MEDIUM,LOW --no-progress ${IMAGE_NAME}",
+                        returnStdout: true
+                    ).trim()
+
+                    echo "Vulnerability Report:\n${vulnerabilities}"
+                }
+            }
+        }
+
+//         FOR DEMO
 //         stage('Deploy (Lowest Downtime)') {
 //             steps {
 //                 echo 'Deploying application...'
